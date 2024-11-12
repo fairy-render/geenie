@@ -9,8 +9,11 @@ pub mod questions;
 
 pub use self::{
     error::GeenieError,
-    file::File,
+    file::{File, FileList},
     geenie::Geenie,
     item::Item,
     question::{Context, Question, QuestionKind, QuestionKindExt},
 };
+
+#[cfg(feature = "cli")]
+pub use cliclack;

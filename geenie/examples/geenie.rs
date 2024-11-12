@@ -22,7 +22,7 @@ impl fmt::Display for Bundler {
 
 impl Item for Test {
     fn process<'a>(
-        &'a self,
+        self,
         mut ctx: geenie::Context<'a>,
     ) -> impl std::future::Future<Output = Result<(), geenie::GeenieError>> + 'a {
         async move {
@@ -49,10 +49,8 @@ impl Item for Test {
                     confirm("Typescript").initial_value(true),
                 )
                     .question(|mut ctx: Context<'_>, ans: (Bundler, bool)| {
-                        println!("Picked {:?}", ans);
-
                         ctx.push(File::new(
-                            "inner/test.json",
+                            "inner/info.json",
                             format!(r#"{{"bundler":"{:?}", "typescript": {}}}"#, ans.0, ans.1),
                         ))?;
                         Ok(())

@@ -3,7 +3,7 @@ use futures::StreamExt;
 use relative_path::RelativePathBuf;
 use std::collections::BTreeSet;
 
-use crate::GeenieError;
+use crate::{GeenieError, Item};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct File {
@@ -92,6 +92,20 @@ impl FileList {
         }
 
         Ok(())
+    }
+}
+
+impl Item for FileList {
+    fn process<'a>(
+        self,
+        mut ctx: crate::Context<'a>,
+    ) -> impl std::future::Future<Output = Result<(), GeenieError>> + 'a {
+        async move {
+            for file in self.files {
+                ctx.push(file)?;
+            }
+            Ok(())
+        }
     }
 }
 
