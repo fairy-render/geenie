@@ -34,6 +34,18 @@ impl File {
     }
 }
 
+impl Item for File {
+    fn process<'a>(
+        self,
+        mut ctx: crate::Context<'a>,
+    ) -> impl std::future::Future<Output = Result<(), GeenieError>> + 'a {
+        async move {
+            ctx.file(self)?;
+            Ok(())
+        }
+    }
+}
+
 #[derive(Debug, Default)]
 pub(crate) struct FileListBuilder {
     files: Vec<File>,
@@ -102,7 +114,7 @@ impl Item for FileList {
     ) -> impl std::future::Future<Output = Result<(), GeenieError>> + 'a {
         async move {
             for file in self.files {
-                ctx.push(file)?;
+                ctx.file(file)?;
             }
             Ok(())
         }

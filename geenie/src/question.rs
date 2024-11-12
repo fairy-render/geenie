@@ -1,6 +1,6 @@
 use std::{cell::RefCell, future::Future, pin::Pin};
 
-use crate::{file::FileListBuilder, func::Func, File, GeenieError};
+use crate::{file::FileListBuilder, func::Func, item::DynamicItem, File, GeenieError, Item};
 
 pub trait QuestionKind {
     type Output;
@@ -66,7 +66,7 @@ pub trait DynamicQuestion {
     ) -> Pin<Box<dyn Future<Output = Result<(), GeenieError>> + 'a>>;
 }
 
-struct QuestionBox<T>(T);
+pub struct QuestionBox<T>(pub T);
 
 impl<T> DynamicQuestion for QuestionBox<T>
 where
@@ -96,7 +96,15 @@ impl<'a> Context<'a> {
         self
     }
 
-    pub fn push(&mut self, file: impl Into<File>) -> Result<&mut Self, GeenieError> {
+    pub fn push<T>(&mut self, item: T) -> &mut Self
+    where
+        T: Item + 'static,
+    {
+        self.questions.push(Box::new(ItemQuestion(item)));
+        self
+    }
+
+    pub fn file(&mut self, file: impl Into<File>) -> Result<&mut Self, GeenieError> {
         self.files.push(file.into())?;
         Ok(self)
     }
@@ -147,5 +155,39 @@ where
             (self.func)(ctx, answer)?;
             Ok(())
         }
+    }
+}
+
+impl<T, K> Item for SimpleQuestion<T, K>
+where
+    K: QuestionKind + 'static,
+    K::Output: 'static,
+    T: 'static,
+    for<'a> T: FnOnce(Context<'a>, K::Output) -> Result<(), GeenieError>,
+{
+    fn process<'a>(self, ctx: Context<'a>) -> impl Future<Output = Result<(), GeenieError>> + 'a {
+        async move {
+            let question = self.crate_question()?;
+            let answer = question.ask().await?;
+            (self.func)(ctx, answer)?;
+            Ok(())
+        }
+    }
+}
+
+pub struct ItemQuestion<T>(pub T);
+
+impl<T> DynamicQuestion for ItemQuestion<T>
+where
+    T: Item + 'static,
+{
+    fn process<'a>(
+        self: Box<Self>,
+        ctx: Context<'a>,
+    ) -> Pin<Box<dyn Future<Output = Result<(), GeenieError>> + 'a>> {
+        Box::pin(async move {
+            self.0.process(ctx).await?;
+            Ok(())
+        })
     }
 }
