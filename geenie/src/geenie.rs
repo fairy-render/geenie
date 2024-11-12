@@ -3,7 +3,7 @@ use core::{future::Future, pin::Pin};
 use crate::{
     file::{FileList, FileListBuilder},
     item::{DynamicItem, ItemBox},
-    question::{DynamicQuestion, ItemQuestion, QuestionBox},
+    question::QuestionBox,
     Context, GeenieError, Item, Question,
 };
 
@@ -21,6 +21,14 @@ impl Geenie {
         self
     }
 
+    pub fn ask<T>(&mut self, question: T) -> &mut Self
+    where
+        T: Question + 'static,
+    {
+        self.items.push(Box::new(QuestionBox(question)));
+        self
+    }
+
     pub async fn run(self) -> Result<FileList, GeenieError> {
         let mut files = FileListBuilder::default();
         for item in self.items {
@@ -30,27 +38,8 @@ impl Geenie {
         Ok(files.build())
     }
 
-    async fn process_item(
+    fn process_item<'a>(
         item: Box<dyn DynamicItem>,
-        files: &mut FileListBuilder,
-    ) -> Result<(), GeenieError> {
-        let mut questions = Vec::default();
-
-        item.process(Context {
-            files,
-            questions: &mut questions,
-        })
-        .await?;
-
-        for question in questions {
-            Self::process_question(question, files).await?;
-        }
-
-        Ok(())
-    }
-
-    fn process_question<'a>(
-        item: Box<dyn DynamicQuestion>,
         files: &'a mut FileListBuilder,
     ) -> Pin<Box<dyn Future<Output = Result<(), GeenieError>> + 'a>> {
         Box::pin(async move {
@@ -63,7 +52,7 @@ impl Geenie {
             .await?;
 
             for question in questions {
-                Self::process_question(question, files).await?;
+                Self::process_item(question, files).await?;
             }
 
             Ok(())
