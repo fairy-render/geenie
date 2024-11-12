@@ -1,0 +1,22 @@
+[package]
+name = "geenie"
+version = "0.1.0"
+edition = "2021"
+
+[features]
+cli = ["cliclack", "blocking"]
+fs = ["async-fs", "futures"]
+
+[dependencies]
+relative-path = "1"
+thiserror = "2"
+cliclack = { version = "0.3", optional = true }
+blocking = { version = "1", optional = true }
+async-fs = { version = "2", optional = true }
+futures = { version = "0.3", optional = true }
+
+
+[[example]]
+name = "geenie"
+path = "examples/geenie.rs"
+required-features = ["fs", "cli"]
