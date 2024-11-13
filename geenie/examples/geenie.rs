@@ -2,7 +2,7 @@ use core::fmt;
 
 use geenie::{
     questions::{confirm, input, select},
-    Context, File, Geenie, GeenieError, Item, QuestionKindExt,
+    Context, File, Geenie, GeenieError, Item, ItemExt, QuestionKindExt,
 };
 use relative_path::RelativePathBuf;
 
@@ -66,7 +66,7 @@ fn main() -> Result<(), GeenieError> {
     futures::executor::block_on(async move {
         let mut m = Geenie::default();
 
-        m.push(Test);
+        m.push(Test.mount("subpath"));
 
         let files = m.run().await?;
 

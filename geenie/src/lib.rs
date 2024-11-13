@@ -11,7 +11,7 @@ pub use self::{
     error::GeenieError,
     file::{File, FileList},
     geenie::Geenie,
-    item::Item,
+    item::{Item, ItemExt, MountItem},
     question::{Context, Question, QuestionKind, QuestionKindExt},
 };
 
