@@ -15,7 +15,8 @@ blocking = { version = "1", optional = true }
 async-fs = { version = "2", optional = true }
 futures = { version = "0.3", optional = true }
 
-
+[dev-dependencies]
+ctrlc = { version = "3" }
 [[example]]
 name = "geenie"
 path = "examples/geenie.rs"

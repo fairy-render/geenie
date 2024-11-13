@@ -3,21 +3,25 @@ use relative_path::RelativePathBuf;
 use crate::{file::FileListBuilder, Context, File, GeenieError};
 use core::{future::Future, pin::Pin};
 
-pub trait Item {
-    fn process<'a>(self, ctx: Context<'a>) -> impl Future<Output = Result<(), GeenieError>> + 'a;
+pub trait Item<C> {
+    fn process<'a>(self, ctx: Context<'a, C>)
+        -> impl Future<Output = Result<(), GeenieError>> + 'a;
 }
 
-impl<T> Item for T
+impl<T, C> Item<C> for T
 where
     T: 'static,
-    for<'a> T: FnOnce(Context<'a>) -> Result<(), GeenieError>,
+    for<'a> T: FnOnce(Context<'a, C>) -> Result<(), GeenieError>,
 {
-    fn process<'a>(self, ctx: Context<'a>) -> impl Future<Output = Result<(), GeenieError>> + 'a {
+    fn process<'a>(
+        self,
+        ctx: Context<'a, C>,
+    ) -> impl Future<Output = Result<(), GeenieError>> + 'a {
         async move { (self)(ctx) }
     }
 }
 
-pub trait ItemExt: Item {
+pub trait ItemExt<C>: Item<C> {
     fn mount<P>(self, path: P) -> MountItem<Self>
     where
         Self: Sized,
@@ -30,31 +34,34 @@ pub trait ItemExt: Item {
     }
 }
 
-impl<T> ItemExt for T where T: Item {}
+impl<T, C> ItemExt<C> for T where T: Item<C> {}
 
-pub trait DynamicItem {
+pub trait DynamicItem<C> {
     fn process<'a>(
         self: Box<Self>,
-        ctx: Context<'a>,
+        ctx: Context<'a, C>,
     ) -> Pin<Box<dyn Future<Output = Result<(), GeenieError>> + 'a>>;
 }
 
 pub struct ItemBox<T>(pub T);
 
-impl<T> DynamicItem for ItemBox<T>
+impl<T, C> DynamicItem<C> for ItemBox<T>
 where
-    T: Item + 'static,
+    T: Item<C> + 'static,
 {
     fn process<'a>(
         self: Box<Self>,
-        ctx: Context<'a>,
+        ctx: Context<'a, C>,
     ) -> Pin<Box<dyn Future<Output = Result<(), GeenieError>> + 'a>> {
         Box::pin(async move { self.0.process(ctx).await })
     }
 }
 
-impl Item for ItemBox<Box<dyn DynamicItem>> {
-    fn process<'a>(self, ctx: Context<'a>) -> impl Future<Output = Result<(), GeenieError>> + 'a {
+impl<C> Item<C> for ItemBox<Box<dyn DynamicItem<C>>> {
+    fn process<'a>(
+        self,
+        ctx: Context<'a, C>,
+    ) -> impl Future<Output = Result<(), GeenieError>> + 'a {
         async move { self.0.process(ctx).await }
     }
 }
@@ -73,13 +80,14 @@ impl<T> MountItem<T> {
     }
 }
 
-impl<T> Item for MountItem<T>
+impl<T, C> Item<C> for MountItem<T>
 where
-    T: Item + 'static,
+    C: 'static,
+    T: Item<C> + 'static,
 {
     fn process<'a>(
         self,
-        mut ctx: Context<'a>,
+        mut ctx: Context<'a, C>,
     ) -> impl Future<Output = Result<(), GeenieError>> + 'a {
         async move {
             let mut files = FileListBuilder::default();
@@ -89,6 +97,7 @@ where
                 .process(Context {
                     files: &mut files,
                     questions: &mut items,
+                    ctx: ctx.ctx,
                 })
                 .await?;
 

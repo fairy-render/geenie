@@ -8,14 +8,14 @@ use crate::{
 };
 
 #[derive(Default)]
-pub struct Geenie {
-    items: Vec<Box<dyn DynamicItem>>,
+pub struct Geenie<C> {
+    items: Vec<Box<dyn DynamicItem<C>>>,
 }
 
-impl Geenie {
+impl<C> Geenie<C> {
     pub fn push<T>(&mut self, item: T) -> &mut Self
     where
-        T: Item + 'static,
+        T: Item<C> + 'static,
     {
         self.items.push(Box::new(ItemBox(item)));
         self
@@ -23,36 +23,41 @@ impl Geenie {
 
     pub fn ask<T>(&mut self, question: T) -> &mut Self
     where
-        T: Question + 'static,
+        T: Question<C> + 'static,
     {
         self.items.push(Box::new(QuestionBox(question)));
         self
     }
 
-    pub async fn run(self) -> Result<FileList, GeenieError> {
+    pub async fn run(self, context: &mut C) -> Result<FileList, GeenieError> {
         let mut files = FileListBuilder::default();
         for item in self.items {
-            Self::process_item(item, &mut files).await?;
+            Self::process_item(item, &mut files, context).await?;
         }
 
         Ok(files.build())
     }
 
     fn process_item<'a>(
-        item: Box<dyn DynamicItem>,
+        item: Box<dyn DynamicItem<C>>,
         files: &'a mut FileListBuilder,
-    ) -> Pin<Box<dyn Future<Output = Result<(), GeenieError>> + 'a>> {
+        context: &'a mut C,
+    ) -> Pin<Box<dyn Future<Output = Result<(), GeenieError>> + 'a>>
+    where
+        C: 'a,
+    {
         Box::pin(async move {
             let mut questions = Vec::default();
 
             item.process(Context {
                 files,
                 questions: &mut questions,
+                ctx: context,
             })
             .await?;
 
             for question in questions {
-                Self::process_item(question, files).await?;
+                Self::process_item(question, files, context).await?;
             }
 
             Ok(())
@@ -60,13 +65,17 @@ impl Geenie {
     }
 }
 
-impl Item for Geenie {
-    fn process<'a>(self, ctx: Context<'a>) -> impl Future<Output = Result<(), GeenieError>> + 'a {
+impl<C> Item<C> for Geenie<C> {
+    fn process<'a>(
+        self,
+        ctx: Context<'a, C>,
+    ) -> impl Future<Output = Result<(), GeenieError>> + 'a {
         async move {
             for item in self.items {
                 item.process(Context {
                     files: ctx.files,
                     questions: ctx.questions,
+                    ctx: ctx.ctx,
                 })
                 .await?;
             }

@@ -34,10 +34,10 @@ impl File {
     }
 }
 
-impl Item for File {
+impl<C> Item<C> for File {
     fn process<'a>(
         self,
-        mut ctx: crate::Context<'a>,
+        mut ctx: crate::Context<'a, C>,
     ) -> impl std::future::Future<Output = Result<(), GeenieError>> + 'a {
         async move {
             ctx.file(self)?;
@@ -107,10 +107,10 @@ impl FileList {
     }
 }
 
-impl Item for FileList {
+impl<C> Item<C> for FileList {
     fn process<'a>(
         self,
-        mut ctx: crate::Context<'a>,
+        mut ctx: crate::Context<'a, C>,
     ) -> impl std::future::Future<Output = Result<(), GeenieError>> + 'a {
         async move {
             for file in self.files {

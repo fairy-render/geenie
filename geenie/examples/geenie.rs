@@ -20,10 +20,10 @@ impl fmt::Display for Bundler {
     }
 }
 
-impl Item for Test {
+impl<C: 'static> Item<C> for Test {
     fn process<'a>(
         self,
-        mut ctx: geenie::Context<'a>,
+        mut ctx: geenie::Context<'a, C>,
     ) -> impl std::future::Future<Output = Result<(), geenie::GeenieError>> + 'a {
         async move {
             ctx.file(File {
@@ -31,7 +31,7 @@ impl Item for Test {
                 content: b"{}".to_vec(),
             })?;
 
-            ctx.ask(input("Name").question(|mut ctx: Context<'_>, ans| {
+            ctx.ask(input("Name").question(|mut ctx: Context<'_, C>, ans| {
                 ctx.file(File {
                     path: RelativePathBuf::from(format!("{ans}.json")),
                     content: b"{}".to_vec(),
@@ -48,7 +48,7 @@ impl Item for Test {
                     ),
                     confirm("Typescript").initial_value(true),
                 )
-                    .question(|mut ctx: Context<'_>, ans: (Bundler, bool)| {
+                    .question(|mut ctx: Context<'_, C>, ans: (Bundler, bool)| {
                         ctx.file(File::new(
                             "inner/info.json",
                             format!(r#"{{"bundler":"{:?}", "typescript": {}}}"#, ans.0, ans.1),
@@ -64,11 +64,12 @@ impl Item for Test {
 
 fn main() -> Result<(), GeenieError> {
     futures::executor::block_on(async move {
+        ctrlc::set_handler(move || {}).expect("setting Ctrl-C handler");
         let mut m = Geenie::default();
 
-        m.push(Test.mount("subpath"));
+        m.push(<Test as ItemExt<()>>::mount(Test, "subpath"));
 
-        let files = m.run().await?;
+        let files = m.run(&mut ()).await?;
 
         let spinner = cliclack::spinner();
         spinner.start("Creating files");

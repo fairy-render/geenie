@@ -52,27 +52,27 @@ macro_rules! impl_questions {
 
 impl_questions!(T1, T2, T3, T4, T5, T6, T7, T8);
 
-pub trait Question {
+pub trait Question<C> {
     type Kind: QuestionKind;
 
     fn crate_question(&self) -> Result<Self::Kind, GeenieError>;
 
     fn process<'a>(
         self,
-        ctx: Context<'a>,
+        ctx: Context<'a, C>,
         answer: <Self::Kind as QuestionKind>::Output,
     ) -> impl Future<Output = Result<(), GeenieError>> + 'a;
 }
 
 pub struct QuestionBox<T>(pub T);
 
-impl<T> DynamicItem for QuestionBox<T>
+impl<T, C> DynamicItem<C> for QuestionBox<T>
 where
-    T: Question + 'static,
+    T: Question<C> + 'static,
 {
     fn process<'a>(
         self: Box<Self>,
-        ctx: Context<'a>,
+        ctx: Context<'a, C>,
     ) -> Pin<Box<dyn Future<Output = Result<(), GeenieError>> + 'a>> {
         Box::pin(async move {
             let question = self.0.crate_question()?;
@@ -83,20 +83,21 @@ where
     }
 }
 
-pub struct Context<'a> {
+pub struct Context<'a, C> {
     pub(crate) files: &'a mut FileListBuilder,
-    pub(crate) questions: &'a mut Vec<Box<dyn DynamicItem>>,
+    pub(crate) questions: &'a mut Vec<Box<dyn DynamicItem<C>>>,
+    pub(crate) ctx: &'a mut C,
 }
 
-impl<'a> Context<'a> {
-    pub fn ask<T: Question + 'static>(&mut self, question: T) -> &mut Self {
+impl<'a, C> Context<'a, C> {
+    pub fn ask<T: Question<C> + 'static>(&mut self, question: T) -> &mut Self {
         self.questions.push(Box::new(QuestionBox(question)));
         self
     }
 
     pub fn push<T>(&mut self, item: T) -> &mut Self
     where
-        T: Item + 'static,
+        T: Item<C> + 'static,
     {
         self.questions.push(Box::new(ItemBox(item)));
         self
@@ -106,13 +107,21 @@ impl<'a> Context<'a> {
         self.files.push(file.into())?;
         Ok(self)
     }
+
+    pub fn data_mut(&mut self) -> &mut C {
+        self.ctx
+    }
+
+    pub fn data(&self) -> &C {
+        self.ctx
+    }
 }
 
 pub trait QuestionKindExt: QuestionKind {
-    fn question<T>(self, func: T) -> SimpleQuestion<T, Self>
+    fn question<C, T>(self, func: T) -> SimpleQuestion<T, Self>
     where
         Self: Sized,
-        for<'a> T: Func<'a, Self::Output>,
+        for<'a> T: Func<'a, C, Self::Output>,
     {
         SimpleQuestion {
             func,
@@ -128,25 +137,25 @@ pub struct SimpleQuestion<T, K> {
     kind: RefCell<Option<K>>,
 }
 
-impl<T, K> Question for SimpleQuestion<T, K>
+impl<T, K, C> Question<C> for SimpleQuestion<T, K>
 where
     K: QuestionKind,
     K::Output: 'static,
     T: 'static,
-    for<'a> T: FnOnce(Context<'a>, K::Output) -> Result<(), GeenieError>,
+    for<'a> T: FnOnce(Context<'a, C>, K::Output) -> Result<(), GeenieError>,
 {
     type Kind = K;
 
     fn crate_question(&self) -> Result<Self::Kind, GeenieError> {
         let Some(kind) = self.kind.take() else {
-            todo!("ewrror")
+            panic!("create question")
         };
         Ok(kind)
     }
 
     fn process<'a>(
         self,
-        ctx: Context<'a>,
+        ctx: Context<'a, C>,
         answer: <Self::Kind as QuestionKind>::Output,
     ) -> impl Future<Output = Result<(), GeenieError>> + 'a {
         async move {
@@ -156,14 +165,17 @@ where
     }
 }
 
-impl<T, K> Item for SimpleQuestion<T, K>
+impl<T, K, C> Item<C> for SimpleQuestion<T, K>
 where
     K: QuestionKind + 'static,
     K::Output: 'static,
     T: 'static,
-    for<'a> T: FnOnce(Context<'a>, K::Output) -> Result<(), GeenieError>,
+    for<'a> T: FnOnce(Context<'a, C>, K::Output) -> Result<(), GeenieError>,
 {
-    fn process<'a>(self, ctx: Context<'a>) -> impl Future<Output = Result<(), GeenieError>> + 'a {
+    fn process<'a>(
+        self,
+        ctx: Context<'a, C>,
+    ) -> impl Future<Output = Result<(), GeenieError>> + 'a {
         async move {
             let question = self.crate_question()?;
             let answer = question.ask().await?;
