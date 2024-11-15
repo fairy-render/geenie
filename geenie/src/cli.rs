@@ -38,7 +38,19 @@ impl Environment for Cli {
         input: crate::questions::Input,
     ) -> impl std::future::Future<Output = Result<String, Self::Error>> {
         async move {
-            let ret = unblock(move || cliclack::input(input.label).interact()).await?;
+            let ret = unblock(move || {
+                let mut i = cliclack::input(input.label).required(input.required);
+                if let Some(default) = input.default {
+                    i = i.default_input(&default);
+                }
+
+                if input.multiline {
+                    i = i.multiline();
+                }
+
+                i.interact()
+            })
+            .await?;
             Ok(ret)
         }
     }

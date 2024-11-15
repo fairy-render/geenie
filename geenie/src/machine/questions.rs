@@ -30,6 +30,7 @@ pub fn input(input: impl Display) -> Input {
         label: input.to_string(),
         default: None,
         required: false,
+        multiline: false,
     }
 }
 
@@ -69,6 +70,33 @@ pub struct Input {
     pub label: String,
     pub default: Option<String>,
     pub required: bool,
+    pub multiline: bool,
+}
+
+impl Input {
+    pub fn new(label: impl ToString) -> Input {
+        Input {
+            label: label.to_string(),
+            default: None,
+            required: false,
+            multiline: false,
+        }
+    }
+
+    pub fn required(mut self, required: bool) -> Self {
+        self.required = required;
+        self
+    }
+
+    pub fn multiline(mut self, multiline: bool) -> Self {
+        self.multiline = multiline;
+        self
+    }
+
+    pub fn default(mut self, default: impl ToString) -> Self {
+        self.default = Some(default.to_string());
+        self
+    }
 }
 
 impl<E: Environment> QuestionKind<E> for Input
