@@ -118,7 +118,10 @@ where
             //     ctx.files.push_command(cmd);
             // }
 
-            ctx.push(files);
+            ctx.push(MountItem {
+                item: files,
+                mount: self.mount.clone(),
+            });
 
             for item in items {
                 ctx.push(MountItem {
