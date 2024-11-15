@@ -29,10 +29,18 @@ impl<E: Environment> crate::command::Command<E> for Process {
         path: &'a Path,
     ) -> impl std::future::Future<Output = Result<(), GeenieError>> + 'a {
         async move {
-            let o = Command::new(&self.cmd)
-                .args(&self.args)
-                .current_dir(path)
-                .output()
+            let cmd = format!("{} {}", self.cmd, self.args.join(" "));
+
+            let o = env
+                .work(&format!("Executing {}", cmd), async move {
+                    let ret = Command::new(&self.cmd)
+                        .args(&self.args)
+                        .current_dir(path)
+                        .output()
+                        .await?;
+
+                    Ok((format!("Executed {}", cmd), ret))
+                })
                 .await?;
 
             if self.output {

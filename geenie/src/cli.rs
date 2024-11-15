@@ -72,4 +72,23 @@ impl Environment for Cli {
             Ok(ret)
         }
     }
+
+    fn work<T, O>(
+        &self,
+        message: &str,
+        future: T,
+    ) -> impl std::future::Future<Output = Result<O, crate::GeenieError>>
+    where
+        T: std::future::Future<Output = Result<(String, O), crate::GeenieError>>,
+    {
+        async move {
+            let spinner = cliclack::spinner();
+            spinner.start(message);
+
+            let (msg, ret) = future.await?;
+
+            spinner.stop(msg);
+            Ok(ret)
+        }
+    }
 }

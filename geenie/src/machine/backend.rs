@@ -1,5 +1,7 @@
 use std::future::Future;
 
+use crate::GeenieError;
+
 use super::questions::{Confirm, Input, MultiSelect, Select};
 
 pub trait Environment {
@@ -17,6 +19,10 @@ pub trait Environment {
         &self,
         input: MultiSelect<T>,
     ) -> impl Future<Output = Result<Vec<T>, Self::Error>>;
+
+    fn work<T, O>(&self, message: &str, future: T) -> impl Future<Output = Result<O, GeenieError>>
+    where
+        T: Future<Output = Result<(String, O), GeenieError>>;
 }
 
 // pub trait QuestionKind<E: Environment> {
