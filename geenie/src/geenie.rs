@@ -3,20 +3,21 @@ use core::{future::Future, pin::Pin};
 use crate::{
     command::{Command, CommandItem},
     item::{DynamicItem, ItemBox},
-    question::QuestionBox,
+    machine::{Question, QuestionBox},
     result::{GeenieResult, ResultBuilder},
-    Context, GeenieError, Item, Question,
+    Context, GeenieError, Item,
 };
 
 #[derive(Default)]
-pub struct Geenie<C> {
-    items: Vec<Box<dyn DynamicItem<C>>>,
+pub struct Geenie<E, C> {
+    env: E,
+    items: Vec<Box<dyn DynamicItem<E, C>>>,
 }
 
-impl<C> Geenie<C> {
+impl<E, C> Geenie<E, C> {
     pub fn push<T>(&mut self, item: T) -> &mut Self
     where
-        T: Item<C> + 'static,
+        T: Item<E, C> + 'static,
     {
         self.items.push(Box::new(ItemBox(item)));
         self
@@ -24,7 +25,7 @@ impl<C> Geenie<C> {
 
     pub fn ask<T>(&mut self, question: T) -> &mut Self
     where
-        T: Question<C> + 'static,
+        T: Question<E, C> + 'static,
     {
         self.items.push(Box::new(QuestionBox(question)));
         self
@@ -32,24 +33,25 @@ impl<C> Geenie<C> {
 
     pub fn command<T>(&mut self, command: T) -> &mut Self
     where
-        T: Command + 'static,
+        T: Command<E> + 'static,
     {
         self.push(CommandItem(command));
         self
     }
 
-    pub async fn run(self, context: &mut C) -> Result<GeenieResult, GeenieError> {
-        let mut files = ResultBuilder::default();
+    pub async fn run(self, context: &mut C) -> Result<GeenieResult<E>, GeenieError> {
+        let mut files = ResultBuilder::<E>::default();
         for item in self.items {
-            Self::process_item(item, &mut files, context).await?;
+            Self::process_item(&self.env, item, &mut files, context).await?;
         }
 
-        Ok(files.build())
+        Ok(files.build(self.env))
     }
 
     fn process_item<'a>(
-        item: Box<dyn DynamicItem<C>>,
-        files: &'a mut ResultBuilder,
+        env: &'a E,
+        item: Box<dyn DynamicItem<E, C>>,
+        files: &'a mut ResultBuilder<E>,
         context: &'a mut C,
     ) -> Pin<Box<dyn Future<Output = Result<(), GeenieError>> + 'a>>
     where
@@ -62,11 +64,12 @@ impl<C> Geenie<C> {
                 files,
                 questions: &mut questions,
                 ctx: context,
+                env: env,
             })
             .await?;
 
             for question in questions {
-                Self::process_item(question, files, context).await?;
+                Self::process_item(env, question, files, context).await?;
             }
 
             Ok(())
@@ -74,10 +77,10 @@ impl<C> Geenie<C> {
     }
 }
 
-impl<C> Item<C> for Geenie<C> {
+impl<E, C> Item<E, C> for Geenie<E, C> {
     fn process<'a>(
         self,
-        ctx: Context<'a, C>,
+        ctx: Context<'a, E, C>,
     ) -> impl Future<Output = Result<(), GeenieError>> + 'a {
         async move {
             for item in self.items {
@@ -85,6 +88,7 @@ impl<C> Item<C> for Geenie<C> {
                     files: ctx.files,
                     questions: ctx.questions,
                     ctx: ctx.ctx,
+                    env: ctx.env,
                 })
                 .await?;
             }

@@ -7,11 +7,13 @@ mod geenie;
 mod item;
 #[cfg(feature = "process")]
 mod process;
-mod question;
+// mod question;
 mod result;
 
+mod machine;
+
 #[cfg(feature = "cli")]
-pub mod questions;
+pub mod cli;
 
 pub use self::{
     command::{Command, DynamicCommand},
@@ -20,7 +22,8 @@ pub use self::{
     file::{File, FileList},
     geenie::Geenie,
     item::{Item, ItemExt, MountItem},
-    question::{Question, QuestionKind, QuestionKindExt},
+    // question::{Question, QuestionKind, QuestionKindExt},
+    machine::{questions, Environment, Question, QuestionKind, QuestionKindExt},
 };
 
 #[cfg(feature = "process")]

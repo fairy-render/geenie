@@ -1,26 +1,27 @@
 use crate::{
     command::{Command, CommandBox},
     item::{DynamicItem, ItemBox},
-    question::QuestionBox,
+    machine::{Question, QuestionBox},
     result::ResultBuilder,
-    File, GeenieError, Item, Question,
+    File, GeenieError, Item,
 };
 
-pub struct Context<'a, C> {
-    pub(crate) files: &'a mut ResultBuilder,
-    pub(crate) questions: &'a mut Vec<Box<dyn DynamicItem<C>>>,
+pub struct Context<'a, E, C> {
+    pub(crate) files: &'a mut ResultBuilder<E>,
+    pub(crate) questions: &'a mut Vec<Box<dyn DynamicItem<E, C>>>,
     pub(crate) ctx: &'a mut C,
+    pub(crate) env: &'a E,
 }
 
-impl<'a, C> Context<'a, C> {
-    pub fn ask<T: Question<C> + 'static>(&mut self, question: T) -> &mut Self {
+impl<'a, E, C> Context<'a, E, C> {
+    pub fn ask<T: Question<E, C> + 'static>(&mut self, question: T) -> &mut Self {
         self.questions.push(Box::new(QuestionBox(question)));
         self
     }
 
     pub fn push<T>(&mut self, item: T) -> &mut Self
     where
-        T: Item<C> + 'static,
+        T: Item<E, C> + 'static,
     {
         self.questions.push(Box::new(ItemBox(item)));
         self
@@ -33,7 +34,7 @@ impl<'a, C> Context<'a, C> {
 
     pub fn command<T>(&mut self, command: T) -> &mut Self
     where
-        T: Command + 'static,
+        T: Command<E> + 'static,
     {
         self.files.push_command(Box::new(CommandBox(command)));
         self

@@ -1,10 +1,10 @@
 use core::fmt;
-use std::os::unix::process;
 
 use geenie::{
+    cli::Cli,
     process,
     questions::{confirm, input, select},
-    Context, File, Geenie, GeenieError, Item, ItemExt, QuestionKindExt,
+    Context, Environment, File, Geenie, GeenieError, Item, ItemExt, QuestionKindExt,
 };
 use relative_path::RelativePathBuf;
 
@@ -22,10 +22,10 @@ impl fmt::Display for Bundler {
     }
 }
 
-impl<C: 'static> Item<C> for Test {
+impl<E: Environment + 'static, C: 'static> Item<E, C> for Test {
     fn process<'a>(
         self,
-        mut ctx: geenie::Context<'a, C>,
+        mut ctx: geenie::Context<'a, E, C>,
     ) -> impl std::future::Future<Output = Result<(), geenie::GeenieError>> + 'a {
         async move {
             ctx.file(File {
@@ -33,7 +33,7 @@ impl<C: 'static> Item<C> for Test {
                 content: b"{}".to_vec(),
             })?;
 
-            ctx.ask(input("Name").question(|mut ctx: Context<'_, C>, ans| {
+            ctx.ask(input("Name").question(|mut ctx: Context<'_, E, C>, ans| {
                 ctx.file(File {
                     path: RelativePathBuf::from(format!("{ans}.json")),
                     content: b"{}".to_vec(),
@@ -48,18 +48,20 @@ impl<C: 'static> Item<C> for Test {
                         "Webpack",
                         "",
                     ),
-                    confirm("Typescript").initial_value(true),
+                    confirm("Typescript").default(true),
                 )
-                    .question(|mut ctx: Context<'_, C>, ans: (Bundler, bool)| {
-                        ctx.file(File::new(
-                            "inner/info.json",
-                            format!(r#"{{"bundler":"{:?}", "typescript": {}}}"#, ans.0, ans.1),
-                        ))?;
-                        Ok(())
-                    }),
+                    .question(
+                        |mut ctx: Context<'_, E, C>, ans: (Bundler, bool)| {
+                            ctx.file(File::new(
+                                "inner/info.json",
+                                format!(r#"{{"bundler":"{:?}", "typescript": {}}}"#, ans.0, ans.1),
+                            ))?;
+                            Ok(())
+                        },
+                    ),
             );
 
-            ctx.command(process("ls").output(true));
+            ctx.command(process("ls").arg("subpath").output(true));
 
             Ok(())
         }
@@ -69,9 +71,9 @@ impl<C: 'static> Item<C> for Test {
 fn main() -> Result<(), GeenieError> {
     futures::executor::block_on(async move {
         ctrlc::set_handler(move || {}).expect("setting Ctrl-C handler");
-        let mut m = Geenie::default();
+        let mut m = Geenie::<Cli, ()>::default();
 
-        m.push(<Test as ItemExt<()>>::mount(Test, "subpath"));
+        m.push(<Test as ItemExt<Cli, ()>>::mount(Test, "subpath"));
 
         let files = m.run(&mut ()).await?;
 

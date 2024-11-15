@@ -2,72 +2,78 @@ use std::{future::Future, path::Path, pin::Pin};
 
 use crate::{GeenieError, Item};
 
-pub trait Command {
-    fn run<'a>(&'a self, path: &'a Path) -> impl Future<Output = Result<(), GeenieError>> + 'a;
-}
-
-pub trait DynamicCommand {
+pub trait Command<E> {
     fn run<'a>(
         &'a self,
+        env: &'a E,
+        path: &'a Path,
+    ) -> impl Future<Output = Result<(), GeenieError>> + 'a;
+}
+
+pub trait DynamicCommand<E> {
+    fn run<'a>(
+        &'a self,
+        env: &'a E,
         path: &'a Path,
     ) -> Pin<Box<dyn Future<Output = Result<(), GeenieError>> + 'a>>;
 }
 
 pub struct CommandBox<T>(pub T);
 
-impl<T> DynamicCommand for CommandBox<T>
+impl<E, T> DynamicCommand<E> for CommandBox<T>
 where
-    T: Command + 'static,
+    T: Command<E> + 'static,
 {
     fn run<'a>(
         &'a self,
+        env: &'a E,
         path: &'a Path,
     ) -> Pin<Box<dyn Future<Output = Result<(), GeenieError>> + 'a>> {
-        Box::pin(async move { self.0.run(path).await })
+        Box::pin(async move { self.0.run(env, path).await })
     }
 }
 
-pub struct CommandList {
-    cmds: Vec<Box<dyn DynamicCommand>>,
+pub struct CommandList<E> {
+    cmds: Vec<Box<dyn DynamicCommand<E>>>,
 }
 
-impl CommandList {
-    pub async fn run_in(&self, path: &Path) -> Result<(), GeenieError> {
+impl<E> CommandList<E> {
+    pub async fn run_in(&self, env: &E, path: &Path) -> Result<(), GeenieError> {
         for cmd in &self.cmds {
-            cmd.run(path).await?;
+            cmd.run(env, path).await?;
         }
         Ok(())
     }
 }
 
-impl From<Vec<Box<dyn DynamicCommand>>> for CommandList {
-    fn from(value: Vec<Box<dyn DynamicCommand>>) -> Self {
+impl<E> From<Vec<Box<dyn DynamicCommand<E>>>> for CommandList<E> {
+    fn from(value: Vec<Box<dyn DynamicCommand<E>>>) -> Self {
         CommandList { cmds: value }
     }
 }
 
-impl IntoIterator for CommandList {
-    type IntoIter = std::vec::IntoIter<Box<dyn DynamicCommand>>;
-    type Item = Box<dyn DynamicCommand>;
+impl<E> IntoIterator for CommandList<E> {
+    type IntoIter = std::vec::IntoIter<Box<dyn DynamicCommand<E>>>;
+    type Item = Box<dyn DynamicCommand<E>>;
 
     fn into_iter(self) -> Self::IntoIter {
         self.cmds.into_iter()
     }
 }
 
-impl<'a> IntoIterator for &'a CommandList {
-    type IntoIter = std::slice::Iter<'a, Box<dyn DynamicCommand>>;
-    type Item = &'a Box<dyn DynamicCommand>;
+impl<'a, E> IntoIterator for &'a CommandList<E> {
+    type IntoIter = std::slice::Iter<'a, Box<dyn DynamicCommand<E>>>;
+    type Item = &'a Box<dyn DynamicCommand<E>>;
 
     fn into_iter(self) -> Self::IntoIter {
         self.cmds.iter()
     }
 }
 
-impl<C> Item<C> for CommandList {
+impl<E, C> Item<E, C> for CommandList<E> {
     fn process<'a>(
         self,
-        ctx: crate::Context<'a, C>,
+        ctx: crate::Context<'a, E, C>,
     ) -> impl Future<Output = Result<(), GeenieError>> + 'a {
         async move {
             for cmd in self {
@@ -81,13 +87,13 @@ impl<C> Item<C> for CommandList {
 
 pub struct CommandItem<T>(pub T);
 
-impl<C, T> Item<C> for CommandItem<T>
+impl<E, C, T> Item<E, C> for CommandItem<T>
 where
-    T: Command + 'static,
+    T: Command<E> + 'static,
 {
     fn process<'a>(
         self,
-        mut ctx: crate::Context<'a, C>,
+        mut ctx: crate::Context<'a, E, C>,
     ) -> impl Future<Output = Result<(), GeenieError>> + 'a {
         async move {
             ctx.command(self.0);

@@ -2,7 +2,7 @@ use std::path::Path;
 
 use async_process::Command;
 
-use crate::{GeenieError, Item};
+use crate::{Environment, GeenieError, Item};
 
 pub struct Process {
     cmd: String,
@@ -22,9 +22,10 @@ impl Process {
     }
 }
 
-impl crate::command::Command for Process {
+impl<E: Environment> crate::command::Command<E> for Process {
     fn run<'a>(
         &'a self,
+        env: &'a E,
         path: &'a Path,
     ) -> impl std::future::Future<Output = Result<(), GeenieError>> + 'a {
         async move {
@@ -41,7 +42,9 @@ impl crate::command::Command for Process {
             }
 
             if self.output {
-                println!("{}", String::from_utf8_lossy(&o.stdout),)
+                env.info(&*String::from_utf8_lossy(&o.stdout))
+                    .await
+                    .map_err(GeenieError::backend)?;
             }
 
             Ok(())
@@ -49,10 +52,10 @@ impl crate::command::Command for Process {
     }
 }
 
-impl<C> Item<C> for Process {
+impl<E: Environment, C> Item<E, C> for Process {
     fn process<'a>(
         self,
-        mut ctx: crate::Context<'a, C>,
+        mut ctx: crate::Context<'a, E, C>,
     ) -> impl std::future::Future<Output = Result<(), GeenieError>> + 'a {
         async move {
             ctx.command(self);

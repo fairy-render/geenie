@@ -28,4 +28,8 @@ impl GeenieError {
     pub fn command(error: String) -> GeenieError {
         GeenieError::Process { error }
     }
+
+    pub fn backend<E: std::error::Error + Send + Sync + 'static>(error: E) -> GeenieError {
+        todo!()
+    }
 }
