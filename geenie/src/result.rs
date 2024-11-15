@@ -47,6 +47,20 @@ impl<E> ResultBuilder<E> {
     }
 }
 
+impl<E: 'static, C> Item<E, C> for ResultBuilder<E> {
+    fn process<'a>(
+        self,
+        mut ctx: crate::Context<'a, E, C>,
+    ) -> impl std::future::Future<Output = Result<(), GeenieError>> + 'a {
+        async move {
+            ctx.push(FileList::from(self.files))
+                .push(CommandList::from(self.commands));
+
+            Ok(())
+        }
+    }
+}
+
 pub struct GeenieResult<E> {
     pub env: E,
     pub files: FileList,

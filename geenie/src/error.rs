@@ -10,6 +10,8 @@ pub enum GeenieError {
     Exists { path: RelativePathBuf },
     #[error("command failed: {error}")]
     Process { error: String },
+    #[error("backend: {0}")]
+    Backend(Box<dyn std::error::Error + Send + Sync>),
 }
 
 impl GeenieError {
@@ -30,6 +32,6 @@ impl GeenieError {
     }
 
     pub fn backend<E: std::error::Error + Send + Sync + 'static>(error: E) -> GeenieError {
-        todo!()
+        GeenieError::Backend(Box::new(error))
     }
 }

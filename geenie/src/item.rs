@@ -85,7 +85,7 @@ impl<T> MountItem<T> {
 impl<T, E, C> Item<E, C> for MountItem<T>
 where
     C: 'static,
-    E: Clone + 'static,
+    E: 'static,
     T: Item<E, C> + 'static,
 {
     fn process<'a>(
@@ -105,18 +105,20 @@ where
                 })
                 .await?;
 
-            let ret = files.build(ctx.env.clone());
+            // let ret = files.build(ctx.env.clone());
 
-            for file in ret.files {
-                ctx.file(File {
-                    path: self.mount.join(file.path),
-                    content: file.content,
-                })?;
-            }
+            // for file in ret.files {
+            //     ctx.file(File {
+            //         path: self.mount.join(file.path),
+            //         content: file.content,
+            //     })?;
+            // }
 
-            for cmd in ret.commands {
-                ctx.files.push_command(cmd);
-            }
+            // for cmd in ret.commands {
+            //     ctx.files.push_command(cmd);
+            // }
+
+            ctx.push(files);
 
             for item in items {
                 ctx.push(MountItem {
