@@ -105,23 +105,16 @@ where
                 })
                 .await?;
 
-            // let ret = files.build(ctx.env.clone());
+            for file in files.files {
+                ctx.file(File {
+                    path: self.mount.join(file.path),
+                    content: file.content,
+                })?;
+            }
 
-            // for file in ret.files {
-            //     ctx.file(File {
-            //         path: self.mount.join(file.path),
-            //         content: file.content,
-            //     })?;
-            // }
-
-            // for cmd in ret.commands {
-            //     ctx.files.push_command(cmd);
-            // }
-
-            ctx.push(MountItem {
-                item: files,
-                mount: self.mount.clone(),
-            });
+            for cmd in files.commands {
+                ctx.files.push_command(cmd);
+            }
 
             for item in items {
                 ctx.push(MountItem {

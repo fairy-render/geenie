@@ -7,9 +7,9 @@ use crate::{command::CommandList, FileList};
 use crate::{File, GeenieError, Item};
 
 pub(crate) struct ResultBuilder<E> {
-    files: Vec<File>,
+    pub(crate) files: Vec<File>,
     seen: BTreeSet<RelativePathBuf>,
-    commands: Vec<Box<dyn DynamicCommand<E>>>,
+    pub(crate) commands: Vec<Box<dyn DynamicCommand<E>>>,
 }
 
 impl<E> Default for ResultBuilder<E> {
