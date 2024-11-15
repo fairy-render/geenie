@@ -1,6 +1,6 @@
 use relative_path::RelativePathBuf;
 
-use crate::{file::FileListBuilder, Context, File, GeenieError};
+use crate::{result::ResultBuilder, Context, File, GeenieError};
 use core::{future::Future, pin::Pin};
 
 pub trait Item<C> {
@@ -90,7 +90,7 @@ where
         mut ctx: Context<'a, C>,
     ) -> impl Future<Output = Result<(), GeenieError>> + 'a {
         async move {
-            let mut files = FileListBuilder::default();
+            let mut files = ResultBuilder::default();
             let mut items = Vec::default();
 
             self.item
@@ -101,11 +101,17 @@ where
                 })
                 .await?;
 
-            for file in files.build() {
+            let ret = files.build();
+
+            for file in ret.files {
                 ctx.file(File {
                     path: self.mount.join(file.path),
                     content: file.content,
                 })?;
+            }
+
+            for cmd in ret.commands {
+                ctx.files.push_command(cmd);
             }
 
             for item in items {

@@ -1,6 +1,8 @@
 use core::fmt;
+use std::os::unix::process;
 
 use geenie::{
+    process,
     questions::{confirm, input, select},
     Context, File, Geenie, GeenieError, Item, ItemExt, QuestionKindExt,
 };
@@ -56,6 +58,8 @@ impl<C: 'static> Item<C> for Test {
                         Ok(())
                     }),
             );
+
+            ctx.command(process("ls").output(true));
 
             Ok(())
         }

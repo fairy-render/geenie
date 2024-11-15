@@ -1,7 +1,6 @@
 #[cfg(feature = "fs")]
 use futures::StreamExt;
 use relative_path::RelativePathBuf;
-use std::collections::BTreeSet;
 
 use crate::{GeenieError, Item};
 
@@ -46,32 +45,9 @@ impl<C> Item<C> for File {
     }
 }
 
-#[derive(Debug, Default)]
-pub(crate) struct FileListBuilder {
-    files: Vec<File>,
-    seen: BTreeSet<RelativePathBuf>,
-}
-
-impl FileListBuilder {
-    pub fn push(&mut self, file: File) -> Result<(), GeenieError> {
-        if self.seen.contains(&file.path) {
-            return Err(GeenieError::duplicate(file.path.clone()));
-        }
-
-        self.seen.insert(file.path.clone());
-        self.files.push(file);
-
-        Ok(())
-    }
-
-    pub fn build(self) -> FileList {
-        FileList { files: self.files }
-    }
-}
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FileList {
-    files: Vec<File>,
+    pub(crate) files: Vec<File>,
 }
 
 impl FileList {

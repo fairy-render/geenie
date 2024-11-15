@@ -8,6 +8,8 @@ pub enum GeenieError {
     Duplicate { path: RelativePathBuf },
     #[error("file already exists: {path}")]
     Exists { path: RelativePathBuf },
+    #[error("command failed: {error}")]
+    Process { error: String },
 }
 
 impl GeenieError {
@@ -21,5 +23,9 @@ impl GeenieError {
 
     pub fn exists(path: RelativePathBuf) -> GeenieError {
         GeenieError::Exists { path }
+    }
+
+    pub fn command(error: String) -> GeenieError {
+        GeenieError::Process { error }
     }
 }

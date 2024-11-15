@@ -1,9 +1,10 @@
 use core::{future::Future, pin::Pin};
 
 use crate::{
-    file::{FileList, FileListBuilder},
+    command::{Command, CommandItem},
     item::{DynamicItem, ItemBox},
     question::QuestionBox,
+    result::{GeenieResult, ResultBuilder},
     Context, GeenieError, Item, Question,
 };
 
@@ -29,8 +30,16 @@ impl<C> Geenie<C> {
         self
     }
 
-    pub async fn run(self, context: &mut C) -> Result<FileList, GeenieError> {
-        let mut files = FileListBuilder::default();
+    pub fn command<T>(&mut self, command: T) -> &mut Self
+    where
+        T: Command + 'static,
+    {
+        self.push(CommandItem(command));
+        self
+    }
+
+    pub async fn run(self, context: &mut C) -> Result<GeenieResult, GeenieError> {
+        let mut files = ResultBuilder::default();
         for item in self.items {
             Self::process_item(item, &mut files, context).await?;
         }
@@ -40,7 +49,7 @@ impl<C> Geenie<C> {
 
     fn process_item<'a>(
         item: Box<dyn DynamicItem<C>>,
-        files: &'a mut FileListBuilder,
+        files: &'a mut ResultBuilder,
         context: &'a mut C,
     ) -> Pin<Box<dyn Future<Output = Result<(), GeenieError>> + 'a>>
     where

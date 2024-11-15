@@ -4,12 +4,15 @@ version = "0.1.0"
 edition = "2021"
 
 [features]
+# default = ["fs", "process"]
 cli = ["cliclack", "blocking"]
 fs = ["async-fs", "futures"]
+process = ["async-process"]
 
 [dependencies]
 relative-path = "1"
 thiserror = "2"
+async-process = { version = "2", optional = true }
 cliclack = { version = "0.3", optional = true }
 blocking = { version = "1", optional = true }
 async-fs = { version = "2", optional = true }
@@ -20,4 +23,4 @@ ctrlc = { version = "3" }
 [[example]]
 name = "geenie"
 path = "examples/geenie.rs"
-required-features = ["fs", "cli"]
+required-features = ["fs", "cli", "process"]
