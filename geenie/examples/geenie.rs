@@ -28,40 +28,40 @@ impl<E: Environment + 'static, C: 'static> Item<E, C> for Test {
         mut ctx: geenie::Context<'a, E, C>,
     ) -> impl std::future::Future<Output = Result<(), geenie::GeenieError>> + 'a {
         async move {
-            ctx.file(File {
-                path: RelativePathBuf::from("package.json"),
-                content: b"{}".to_vec(),
-            })?;
+            // ctx.file(File {
+            //     path: RelativePathBuf::from("package.json"),
+            //     content: b"{}".to_vec(),
+            // })?;
 
-            ctx.ask(input("Name").question(|mut ctx: Context<'_, E, C>, ans| {
-                ctx.file(File {
-                    path: RelativePathBuf::from(format!("{ans}.json")),
-                    content: b"{}".to_vec(),
-                })?;
-                Ok(())
-            }));
+            // ctx.ask(input("Name").question(|mut ctx: Context<'_, E, C>, ans| {
+            //     ctx.file(File {
+            //         path: RelativePathBuf::from(format!("{ans}.json")),
+            //         content: b"{}".to_vec(),
+            //     })?;
+            //     Ok(())
+            // }));
 
-            ctx.ask(
-                (
-                    select("Bundler").item(Bundler::Vite, "Vite", "").item(
-                        Bundler::Webpack,
-                        "Webpack",
-                        "",
-                    ),
-                    confirm("Typescript").default(true),
-                )
-                    .question(
-                        |mut ctx: Context<'_, E, C>, ans: (Bundler, bool)| {
-                            ctx.file(File::new(
-                                "inner/info.json",
-                                format!(r#"{{"bundler":"{:?}", "typescript": {}}}"#, ans.0, ans.1),
-                            ))?;
-                            Ok(())
-                        },
-                    ),
-            );
+            // ctx.ask(
+            //     (
+            //         select("Bundler").item(Bundler::Vite, "Vite", "").item(
+            //             Bundler::Webpack,
+            //             "Webpack",
+            //             "",
+            //         ),
+            //         confirm("Typescript").default(true),
+            //     )
+            //         .question(
+            //             |mut ctx: Context<'_, E, C>, ans: (Bundler, bool)| {
+            //                 ctx.file(File::new(
+            //                     "inner/info.json",
+            //                     format!(r#"{{"bundler":"{:?}", "typescript": {}}}"#, ans.0, ans.1),
+            //                 ))?;
+            //                 Ok(())
+            //             },
+            //         ),
+            // );
 
-            ctx.command(process("ls").arg("subpath").output(true));
+            ctx.command(process("pnpm").arg("-h").output(true));
 
             Ok(())
         }

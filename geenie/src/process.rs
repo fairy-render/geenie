@@ -35,16 +35,16 @@ impl<E: Environment> crate::command::Command<E> for Process {
                 .output()
                 .await?;
 
-            if !o.status.success() {
-                return Err(GeenieError::command(
-                    String::from_utf8_lossy(&o.stderr).to_string(),
-                ));
-            }
-
             if self.output {
                 env.info(&*String::from_utf8_lossy(&o.stdout))
                     .await
                     .map_err(GeenieError::backend)?;
+            }
+
+            if !o.status.success() {
+                return Err(GeenieError::command(
+                    String::from_utf8_lossy(&o.stderr).to_string(),
+                ));
             }
 
             Ok(())
