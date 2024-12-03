@@ -81,6 +81,10 @@ impl FileList {
 
         Ok(())
     }
+
+    pub fn push(&mut self, file: File) {
+        self.files.push(file);
+    }
 }
 
 impl<E, C> Item<E, C> for FileList {
@@ -118,5 +122,11 @@ impl<'a> IntoIterator for &'a FileList {
 impl From<Vec<File>> for FileList {
     fn from(files: Vec<File>) -> Self {
         FileList { files }
+    }
+}
+
+impl From<FileList> for Vec<File> {
+    fn from(files: FileList) -> Self {
+        files.files
     }
 }
