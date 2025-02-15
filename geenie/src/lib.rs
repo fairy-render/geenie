@@ -31,3 +31,5 @@ pub use self::process::*;
 
 #[cfg(feature = "cli")]
 pub use cliclack;
+
+pub use relative_path;
