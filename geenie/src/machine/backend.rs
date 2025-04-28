@@ -24,21 +24,3 @@ pub trait Environment {
     where
         T: Future<Output = Result<(String, O), GeenieError>>;
 }
-
-// pub trait QuestionKind<E: Environment> {
-//     type Output;
-
-//     fn run(self, env: &E) -> impl Future<Output = Result<Self::Output, <E as Environment>::Error>>;
-// }
-
-// pub trait Question<E: Environment, C> {
-//     type Kind: QuestionKind<E>;
-
-//     fn crate_question(&self) -> Result<Self::Kind, GeenieError>;
-
-//     fn process<'a>(
-//         self,
-//         ctx: Context<'a, E, C>,
-//         answer: <Self::Kind as QuestionKind<E>>::Output,
-//     ) -> impl Future<Output = Result<(), GeenieError>> + 'a;
-// }

@@ -7,7 +7,6 @@ mod geenie;
 mod item;
 #[cfg(feature = "process")]
 mod process;
-// mod question;
 mod result;
 
 mod machine;
@@ -22,7 +21,6 @@ pub use self::{
     file::{File, FileList},
     geenie::Geenie,
     item::{Item, ItemExt, MountItem},
-    // question::{Question, QuestionKind, QuestionKindExt},
     machine::{questions, Environment, Question, QuestionKind, QuestionKindExt},
 };
 
