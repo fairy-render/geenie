@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [features]
-default = ["fs", "cli", "process"]
+# default = ["fs", "cli", "process"]
 cli = ["cliclack", "blocking"]
 fs = ["async-fs", "futures"]
 process = ["async-process"]
