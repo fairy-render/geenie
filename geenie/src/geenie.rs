@@ -5,7 +5,7 @@ use crate::{
     item::{DynamicItem, ItemBox},
     machine::{Question, QuestionBox},
     result::{GeenieResult, ResultBuilder},
-    Context, GeenieError, Item,
+    Context, File, GeenieError, Item, QuestionKind,
 };
 
 #[derive(Default)]
@@ -23,20 +23,29 @@ impl<E, C> Geenie<E, C> {
         self
     }
 
-    pub fn ask<T>(&mut self, question: T) -> &mut Self
-    where
-        T: Question<E, C> + 'static,
-    {
-        self.items.push(Box::new(QuestionBox(question)));
-        self
-    }
-
     pub fn command<T>(&mut self, command: T) -> &mut Self
     where
         T: Command<E> + 'static,
     {
         self.push(CommandItem(command));
         self
+    }
+
+    pub fn file(&mut self, file: impl Into<File>) -> Result<&mut Self, GeenieError> {
+        self.items.push(Box::new(ItemBox(file.into())));
+        Ok(self)
+    }
+
+    pub fn question<T: Question<E, C> + 'static>(&mut self, question: T) -> &mut Self {
+        self.items.push(Box::new(QuestionBox(question)));
+        self
+    }
+
+    pub async fn ask<T>(&mut self, question: T) -> Result<T::Output, GeenieError>
+    where
+        T: QuestionKind<E> + 'static,
+    {
+        question.ask(&self.env).await
     }
 
     pub async fn run(self, context: &mut C) -> Result<GeenieResult<E>, GeenieError> {

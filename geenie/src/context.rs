@@ -3,7 +3,7 @@ use crate::{
     item::{DynamicItem, ItemBox},
     machine::{Question, QuestionBox},
     result::ResultBuilder,
-    File, GeenieError, Item,
+    File, GeenieError, Item, QuestionKind,
 };
 
 pub struct Context<'a, E, C> {
@@ -14,9 +14,16 @@ pub struct Context<'a, E, C> {
 }
 
 impl<'a, E, C> Context<'a, E, C> {
-    pub fn ask<T: Question<E, C> + 'static>(&mut self, question: T) -> &mut Self {
+    pub fn question<T: Question<E, C> + 'static>(&mut self, question: T) -> &mut Self {
         self.questions.push(Box::new(QuestionBox(question)));
         self
+    }
+
+    pub async fn ask<T>(&mut self, question: T) -> Result<T::Output, GeenieError>
+    where
+        T: QuestionKind<E> + 'static,
+    {
+        question.ask(self.env).await
     }
 
     pub fn push<T>(&mut self, item: T) -> &mut Self
