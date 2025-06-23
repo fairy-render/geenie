@@ -14,6 +14,10 @@ pub struct Context<'a, E, C> {
 }
 
 impl<'a, E, C> Context<'a, E, C> {
+    pub fn env(&self) -> &E {
+        self.env
+    }
+
     pub fn question<T: Question<E, C> + 'static>(&mut self, question: T) -> &mut Self {
         self.questions.push(Box::new(QuestionBox(question)));
         self
