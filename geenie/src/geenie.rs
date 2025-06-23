@@ -8,13 +8,35 @@ use crate::{
     Context, File, GeenieError, Item, QuestionKind,
 };
 
-#[derive(Default)]
 pub struct Geenie<E, C> {
     env: E,
     items: Vec<Box<dyn DynamicItem<E, C>>>,
 }
 
+impl<E, C> Default for Geenie<E, C>
+where
+    E: Default,
+{
+    fn default() -> Self {
+        Geenie {
+            env: E::default(),
+            items: Default::default(),
+        }
+    }
+}
+
 impl<E, C> Geenie<E, C> {
+    pub fn new(env: E) -> Geenie<E, C> {
+        Geenie {
+            env,
+            items: Default::default(),
+        }
+    }
+
+    pub fn env(&self) -> &E {
+        &self.env
+    }
+
     pub fn push<T>(&mut self, item: T) -> &mut Self
     where
         T: Item<E, C> + 'static,
@@ -41,7 +63,7 @@ impl<E, C> Geenie<E, C> {
         self
     }
 
-    pub async fn ask<T>(&mut self, question: T) -> Result<T::Output, GeenieError>
+    pub async fn ask<T>(&self, question: T) -> Result<T::Output, GeenieError>
     where
         T: QuestionKind<E> + 'static,
     {
