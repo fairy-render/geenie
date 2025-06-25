@@ -5,13 +5,17 @@ edition = "2021"
 
 [features]
 # default = ["fs", "cli", "process"]
-cli = ["cliclack", "blocking"]
+cli = ["cliclack", "blocking", "spurgt-cliclack"]
 fs = ["async-fs", "futures"]
 process = ["async-process"]
 
 [dependencies]
-relative-path = "1"
+relative-path = "2"
 thiserror = "2"
+
+spurgt = { git = "ssh://git@github.com/fairy-render/spurgt.git" }
+spurgt-cliclack = { git = "ssh://git@github.com/fairy-render/spurgt.git", optional = true }
+
 async-process = { version = "2", optional = true }
 cliclack = { version = "0.3", optional = true }
 blocking = { version = "1", optional = true }

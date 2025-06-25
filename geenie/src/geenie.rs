@@ -3,10 +3,10 @@ use core::{future::Future, pin::Pin};
 use crate::{
     command::{Command, CommandItem},
     item::{DynamicItem, ItemBox},
-    machine::{Question, QuestionBox},
     result::{GeenieResult, ResultBuilder},
-    Context, File, GeenieError, Item, QuestionKind,
+    Context, File, GeenieError, Item,
 };
+use spurgt::core::Question;
 
 pub struct Geenie<E, C> {
     env: E,
@@ -58,16 +58,11 @@ impl<E, C> Geenie<E, C> {
         Ok(self)
     }
 
-    pub fn question<T: Question<E, C> + 'static>(&mut self, question: T) -> &mut Self {
-        self.items.push(Box::new(QuestionBox(question)));
-        self
-    }
-
     pub async fn ask<T>(&self, question: T) -> Result<T::Output, GeenieError>
     where
-        T: QuestionKind<E> + 'static,
+        T: Question<E> + 'static,
     {
-        question.ask(&self.env).await
+        question.ask(&self.env).await.map_err(GeenieError::backend)
     }
 
     pub async fn run(self, context: &mut C) -> Result<GeenieResult<E>, GeenieError> {

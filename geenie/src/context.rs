@@ -1,10 +1,10 @@
 use crate::{
     command::{Command, CommandBox},
     item::{DynamicItem, ItemBox},
-    machine::{Question, QuestionBox},
     result::ResultBuilder,
-    File, GeenieError, Item, QuestionKind,
+    File, GeenieError, Item,
 };
+use spurgt::core::Question;
 
 pub struct Context<'a, E, C> {
     pub(crate) files: &'a mut ResultBuilder<E>,
@@ -18,16 +18,11 @@ impl<'a, E, C> Context<'a, E, C> {
         self.env
     }
 
-    pub fn question<T: Question<E, C> + 'static>(&mut self, question: T) -> &mut Self {
-        self.questions.push(Box::new(QuestionBox(question)));
-        self
-    }
-
     pub async fn ask<T>(&mut self, question: T) -> Result<T::Output, GeenieError>
     where
-        T: QuestionKind<E> + 'static,
+        T: Question<E> + 'static,
     {
-        question.ask(self.env).await
+        question.ask(self.env).await.map_err(GeenieError::backend)
     }
 
     pub fn push<T>(&mut self, item: T) -> &mut Self

@@ -9,10 +9,17 @@ mod item;
 mod process;
 mod result;
 
-mod machine;
+// mod machine;
+
+pub mod questions {
+    pub use spurgt::{
+        confirm, input, multi_select, password, select, Confirm, Input, MultiSelect, Password,
+        Select,
+    };
+}
 
 #[cfg(feature = "cli")]
-pub mod cli;
+pub use spurgt_cliclack::Cliclack as Cli;
 
 pub use self::{
     command::{Command, DynamicCommand},
@@ -21,13 +28,9 @@ pub use self::{
     file::{File, FileList},
     geenie::Geenie,
     item::{Item, ItemExt, MountItem},
-    machine::{questions, Environment, Question, QuestionKind, QuestionKindExt},
 };
 
 #[cfg(feature = "process")]
 pub use self::process::*;
-
-#[cfg(feature = "cli")]
-pub use cliclack;
 
 pub use relative_path;

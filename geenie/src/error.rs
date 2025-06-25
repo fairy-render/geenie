@@ -31,7 +31,7 @@ impl GeenieError {
         GeenieError::Process { error }
     }
 
-    pub fn backend<E: std::error::Error + Send + Sync + 'static>(error: E) -> GeenieError {
-        GeenieError::Backend(Box::new(error))
+    pub fn backend<E: Into<Box<dyn std::error::Error + Send + Sync>>>(error: E) -> GeenieError {
+        GeenieError::Backend(error.into())
     }
 }
