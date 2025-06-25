@@ -1,6 +1,7 @@
 use std::collections::BTreeSet;
 
 use relative_path::RelativePathBuf;
+use spurgt::Spurgt;
 
 use crate::command::DynamicCommand;
 use crate::{command::CommandList, FileList};
@@ -38,7 +39,7 @@ impl<E> ResultBuilder<E> {
         self.commands.push(command);
     }
 
-    pub fn build(self, env: E) -> GeenieResult<E> {
+    pub fn build(self, env: Spurgt<E>) -> GeenieResult<E> {
         GeenieResult {
             files: FileList { files: self.files },
             commands: self.commands.into(),
@@ -51,6 +52,7 @@ impl<E: 'static, C> Item<E, C> for ResultBuilder<E> {
     fn process<'a>(
         self,
         mut ctx: crate::Context<'a, E, C>,
+        _env: &'a mut Spurgt<E>,
     ) -> impl std::future::Future<Output = Result<(), GeenieError>> + 'a {
         async move {
             ctx.push(FileList::from(self.files))
@@ -62,7 +64,7 @@ impl<E: 'static, C> Item<E, C> for ResultBuilder<E> {
 }
 
 pub struct GeenieResult<E> {
-    pub env: E,
+    pub env: Spurgt<E>,
     pub files: FileList,
     pub commands: CommandList<E>,
 }
@@ -70,12 +72,12 @@ pub struct GeenieResult<E> {
 impl<E> GeenieResult<E> {
     #[cfg(feature = "fs")]
     pub async fn write_to(
-        &self,
+        &mut self,
         path: impl AsRef<std::path::Path>,
         force: bool,
     ) -> Result<(), GeenieError> {
         self.files.write_to(path.as_ref(), force).await?;
-        self.commands.run_in(&self.env, path.as_ref()).await?;
+        self.commands.run_in(&mut self.env, path.as_ref()).await?;
 
         Ok(())
     }
@@ -85,6 +87,7 @@ impl<E: 'static, C> Item<E, C> for GeenieResult<E> {
     fn process<'a>(
         self,
         mut ctx: crate::Context<'a, E, C>,
+        _env: &'a mut Spurgt<E>,
     ) -> impl std::future::Future<Output = Result<(), GeenieError>> + 'a {
         async move {
             ctx.push(self.files).push(self.commands);

@@ -2,7 +2,7 @@ mod command;
 mod context;
 mod error;
 mod file;
-mod func;
+// mod func;
 mod geenie;
 mod item;
 #[cfg(feature = "process")]
@@ -16,6 +16,10 @@ pub mod questions {
         confirm, input, multi_select, password, select, Confirm, Input, MultiSelect, Password,
         Select,
     };
+}
+
+pub mod ui {
+    pub use spurgt::{ProgressBar, Spinner};
 }
 
 #[cfg(feature = "cli")]

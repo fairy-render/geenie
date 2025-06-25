@@ -1,6 +1,7 @@
 #[cfg(feature = "fs")]
 use futures::StreamExt;
 use relative_path::RelativePathBuf;
+use spurgt::Spurgt;
 
 use crate::{GeenieError, Item};
 
@@ -37,6 +38,7 @@ impl<E, C> Item<E, C> for File {
     fn process<'a>(
         self,
         mut ctx: crate::Context<'a, E, C>,
+        _env: &'a mut Spurgt<E>,
     ) -> impl std::future::Future<Output = Result<(), GeenieError>> + 'a {
         async move {
             ctx.file(self)?;
@@ -91,6 +93,7 @@ impl<E, C> Item<E, C> for FileList {
     fn process<'a>(
         self,
         mut ctx: crate::Context<'a, E, C>,
+        _env: &'a mut Spurgt<E>,
     ) -> impl std::future::Future<Output = Result<(), GeenieError>> + 'a {
         async move {
             for file in self.files {

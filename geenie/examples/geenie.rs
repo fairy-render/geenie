@@ -1,12 +1,12 @@
 use core::fmt;
 
 use geenie::{
-    cli::Cli,
     process,
     questions::{confirm, input, select},
-    Context, Environment, File, Geenie, GeenieError, Item, ItemExt, QuestionKindExt,
+    Cli, Context, File, Geenie, GeenieError, Item, ItemExt,
 };
 use relative_path::RelativePathBuf;
+use spurgt::{core::Env, Asger, Spurgt};
 
 struct Test;
 
@@ -22,10 +22,11 @@ impl fmt::Display for Bundler {
     }
 }
 
-impl<E: Environment + 'static, C: 'static> Item<E, C> for Test {
+impl<E: Asger + 'static, C: 'static> Item<E, C> for Test {
     fn process<'a>(
         self,
         mut ctx: geenie::Context<'a, E, C>,
+        env: &'a mut Spurgt<E>,
     ) -> impl std::future::Future<Output = Result<(), geenie::GeenieError>> + 'a {
         async move {
             // ctx.file(File {
@@ -33,35 +34,9 @@ impl<E: Environment + 'static, C: 'static> Item<E, C> for Test {
             //     content: b"{}".to_vec(),
             // })?;
 
-            // ctx.ask(input("Name").question(|mut ctx: Context<'_, E, C>, ans| {
-            //     ctx.file(File {
-            //         path: RelativePathBuf::from(format!("{ans}.json")),
-            //         content: b"{}".to_vec(),
-            //     })?;
-            //     Ok(())
-            // }));
+            env.ask(input("Hello, World")).await?;
 
-            // ctx.ask(
-            //     (
-            //         select("Bundler").item(Bundler::Vite, "Vite", "").item(
-            //             Bundler::Webpack,
-            //             "Webpack",
-            //             "",
-            //         ),
-            //         confirm("Typescript").default(true),
-            //     )
-            //         .question(
-            //             |mut ctx: Context<'_, E, C>, ans: (Bundler, bool)| {
-            //                 ctx.file(File::new(
-            //                     "inner/info.json",
-            //                     format!(r#"{{"bundler":"{:?}", "typescript": {}}}"#, ans.0, ans.1),
-            //                 ))?;
-            //                 Ok(())
-            //             },
-            //         ),
-            // );
-
-            ctx.command(process("pnpm").arg("-h").output(true));
+            ctx.command(process("pnpm").arg("-h").output(false));
 
             Ok(())
         }
@@ -73,15 +48,11 @@ fn main() -> Result<(), GeenieError> {
         ctrlc::set_handler(move || {}).expect("setting Ctrl-C handler");
         let mut m = Geenie::<Cli, ()>::default();
 
-        m.push(<Test as ItemExt<Cli, ()>>::mount(Test, "subpath"));
+        m.push(Test);
 
-        let files = m.run(&mut ()).await?;
+        let mut files = m.run(&mut ()).await?;
 
-        let spinner = cliclack::spinner();
-        spinner.start("Creating files");
         files.write_to("geenie-test", false).await?;
-        std::thread::sleep(std::time::Duration::from_secs(1));
-        spinner.stop("Files created");
 
         Result::<_, GeenieError>::Ok(())
     })

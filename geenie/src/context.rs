@@ -4,27 +4,14 @@ use crate::{
     result::ResultBuilder,
     File, GeenieError, Item,
 };
-use spurgt::core::Question;
 
 pub struct Context<'a, E, C> {
     pub(crate) files: &'a mut ResultBuilder<E>,
     pub(crate) questions: &'a mut Vec<Box<dyn DynamicItem<E, C>>>,
     pub(crate) ctx: &'a mut C,
-    pub(crate) env: &'a E,
 }
 
 impl<'a, E, C> Context<'a, E, C> {
-    pub fn env(&self) -> &E {
-        self.env
-    }
-
-    pub async fn ask<T>(&mut self, question: T) -> Result<T::Output, GeenieError>
-    where
-        T: Question<E> + 'static,
-    {
-        question.ask(self.env).await.map_err(GeenieError::backend)
-    }
-
     pub fn push<T>(&mut self, item: T) -> &mut Self
     where
         T: Item<E, C> + 'static,

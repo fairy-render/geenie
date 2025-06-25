@@ -12,6 +12,8 @@ pub enum GeenieError {
     Process { error: String },
     #[error("backend: {0}")]
     Backend(Box<dyn std::error::Error + Send + Sync>),
+    #[error("{0}")]
+    Spurgt(#[from] spurgt::core::Error),
 }
 
 impl GeenieError {

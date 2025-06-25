@@ -362,8 +362,6 @@ version = "0.1.0"
 dependencies = [
  "async-fs",
  "async-process",
- "blocking",
- "cliclack",
  "ctrlc",
  "futures",
  "relative-path",
@@ -638,7 +636,7 @@ dependencies = [
 [[package]]
 name = "spurgt"
 version = "0.1.0"
-source = "git+ssh://git@github.com/fairy-render/spurgt.git#8ee98155daa155909da0e6fce2a184dd69bcb708"
+source = "git+ssh://git@github.com/fairy-render/spurgt.git#edd10552f5a59b7c070c3aa4733d9410f0393458"
 dependencies = [
  "spurgt-core",
  "spurgt-questions",
@@ -647,7 +645,7 @@ dependencies = [
 [[package]]
 name = "spurgt-cliclack"
 version = "0.1.0"
-source = "git+ssh://git@github.com/fairy-render/spurgt.git#8ee98155daa155909da0e6fce2a184dd69bcb708"
+source = "git+ssh://git@github.com/fairy-render/spurgt.git#edd10552f5a59b7c070c3aa4733d9410f0393458"
 dependencies = [
  "cliclack",
  "flume",
@@ -659,12 +657,12 @@ dependencies = [
 [[package]]
 name = "spurgt-core"
 version = "0.1.0"
-source = "git+ssh://git@github.com/fairy-render/spurgt.git#8ee98155daa155909da0e6fce2a184dd69bcb708"
+source = "git+ssh://git@github.com/fairy-render/spurgt.git#edd10552f5a59b7c070c3aa4733d9410f0393458"
 
 [[package]]
 name = "spurgt-questions"
 version = "0.1.0"
-source = "git+ssh://git@github.com/fairy-render/spurgt.git#8ee98155daa155909da0e6fce2a184dd69bcb708"
+source = "git+ssh://git@github.com/fairy-render/spurgt.git#edd10552f5a59b7c070c3aa4733d9410f0393458"
 dependencies = [
  "spurgt-core",
 ]

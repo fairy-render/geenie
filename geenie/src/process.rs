@@ -2,7 +2,8 @@ use std::path::Path;
 
 use async_process::Command;
 
-use crate::{Environment, GeenieError, Item};
+use crate::{GeenieError, Item};
+use spurgt::{Asger, Spinner, Spurgt};
 
 pub struct Process {
     cmd: String,
@@ -22,36 +23,45 @@ impl Process {
     }
 }
 
-impl<E: Environment> crate::command::Command<E> for Process {
+impl<E: Asger> crate::command::Command<E> for Process {
     fn run<'a>(
         &'a self,
-        env: &'a E,
+        env: &'a mut Spurgt<E>,
         path: &'a Path,
     ) -> impl std::future::Future<Output = Result<(), GeenieError>> + 'a {
         async move {
             let cmd = format!("{} {}", self.cmd, self.args.join(" "));
 
-            let o = env
-                .work(&format!("Executing {}", cmd), async move {
-                    let ret = Command::new(&self.cmd)
-                        .args(&self.args)
-                        .current_dir(path)
-                        .output()
-                        .await?;
+            let mut spinner = Spinner::new(env);
 
-                    Ok((format!("Executed {}", cmd), ret))
-                })
-                .await?;
+            spinner.start(format!("Executing {}", cmd));
+
+            let ret = Command::new(&self.cmd)
+                .args(&self.args)
+                .current_dir(path)
+                .output()
+                .await;
+
+            let ret = match ret {
+                Ok(ret) => {
+                    spinner.stop(format!("Executed {}", cmd));
+                    ret
+                }
+                Err(err) => {
+                    spinner.error(err.to_string());
+                    return Err(GeenieError::backend(err));
+                }
+            };
 
             if self.output {
-                env.info(&*String::from_utf8_lossy(&o.stdout))
+                env.info(&*String::from_utf8_lossy(&ret.stdout))
                     .await
                     .map_err(GeenieError::backend)?;
             }
 
-            if !o.status.success() {
+            if !ret.status.success() {
                 return Err(GeenieError::command(
-                    String::from_utf8_lossy(&o.stderr).to_string(),
+                    String::from_utf8_lossy(&ret.stderr).to_string(),
                 ));
             }
 
@@ -60,10 +70,11 @@ impl<E: Environment> crate::command::Command<E> for Process {
     }
 }
 
-impl<E: Environment, C> Item<E, C> for Process {
+impl<E: Asger, C> Item<E, C> for Process {
     fn process<'a>(
         self,
         mut ctx: crate::Context<'a, E, C>,
+        _env: &'a mut Spurgt<E>,
     ) -> impl std::future::Future<Output = Result<(), GeenieError>> + 'a {
         async move {
             ctx.command(self);

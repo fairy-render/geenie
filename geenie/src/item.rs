@@ -1,4 +1,5 @@
 use relative_path::RelativePathBuf;
+use spurgt::Spurgt;
 
 use crate::{result::ResultBuilder, Context, File, GeenieError};
 use core::{future::Future, pin::Pin};
@@ -7,19 +8,21 @@ pub trait Item<E, C> {
     fn process<'a>(
         self,
         ctx: Context<'a, E, C>,
+        env: &'a mut Spurgt<E>,
     ) -> impl Future<Output = Result<(), GeenieError>> + 'a;
 }
 
 impl<T, E, C> Item<E, C> for T
 where
     T: 'static,
-    for<'a> T: FnOnce(Context<'a, E, C>) -> Result<(), GeenieError>,
+    for<'a> T: FnOnce(Context<'a, E, C>, &'a mut Spurgt<E>) -> Result<(), GeenieError>,
 {
     fn process<'a>(
         self,
         ctx: Context<'a, E, C>,
+        env: &'a mut Spurgt<E>,
     ) -> impl Future<Output = Result<(), GeenieError>> + 'a {
-        async move { (self)(ctx) }
+        async move { (self)(ctx, env) }
     }
 }
 
@@ -42,6 +45,7 @@ pub trait DynamicItem<E, C> {
     fn process<'a>(
         self: Box<Self>,
         ctx: Context<'a, E, C>,
+        env: &'a mut Spurgt<E>,
     ) -> Pin<Box<dyn Future<Output = Result<(), GeenieError>> + 'a>>;
 }
 
@@ -54,8 +58,9 @@ where
     fn process<'a>(
         self: Box<Self>,
         ctx: Context<'a, E, C>,
+        env: &'a mut Spurgt<E>,
     ) -> Pin<Box<dyn Future<Output = Result<(), GeenieError>> + 'a>> {
-        Box::pin(async move { self.0.process(ctx).await })
+        Box::pin(async move { self.0.process(ctx, env).await })
     }
 }
 
@@ -63,8 +68,9 @@ impl<E, C> Item<E, C> for ItemBox<Box<dyn DynamicItem<E, C>>> {
     fn process<'a>(
         self,
         ctx: Context<'a, E, C>,
+        env: &'a mut Spurgt<E>,
     ) -> impl Future<Output = Result<(), GeenieError>> + 'a {
-        async move { self.0.process(ctx).await }
+        async move { self.0.process(ctx, env).await }
     }
 }
 
@@ -91,18 +97,21 @@ where
     fn process<'a>(
         self,
         mut ctx: Context<'a, E, C>,
+        env: &'a mut Spurgt<E>,
     ) -> impl Future<Output = Result<(), GeenieError>> + 'a {
         async move {
             let mut files = ResultBuilder::default();
             let mut items = Vec::default();
 
             self.item
-                .process(Context {
-                    files: &mut files,
-                    questions: &mut items,
-                    ctx: ctx.ctx,
-                    env: ctx.env,
-                })
+                .process(
+                    Context {
+                        files: &mut files,
+                        questions: &mut items,
+                        ctx: ctx.ctx,
+                    },
+                    env,
+                )
                 .await?;
 
             for file in files.files {

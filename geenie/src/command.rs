@@ -1,11 +1,13 @@
 use std::{future::Future, path::Path, pin::Pin};
 
+use spurgt::Spurgt;
+
 use crate::{GeenieError, Item};
 
 pub trait Command<E> {
     fn run<'a>(
         &'a self,
-        env: &'a E,
+        env: &'a mut Spurgt<E>,
         path: &'a Path,
     ) -> impl Future<Output = Result<(), GeenieError>> + 'a;
 }
@@ -13,7 +15,7 @@ pub trait Command<E> {
 pub trait DynamicCommand<E> {
     fn run<'a>(
         &'a self,
-        env: &'a E,
+        env: &'a mut Spurgt<E>,
         path: &'a Path,
     ) -> Pin<Box<dyn Future<Output = Result<(), GeenieError>> + 'a>>;
 }
@@ -26,7 +28,7 @@ where
 {
     fn run<'a>(
         &'a self,
-        env: &'a E,
+        env: &'a mut Spurgt<E>,
         path: &'a Path,
     ) -> Pin<Box<dyn Future<Output = Result<(), GeenieError>> + 'a>> {
         Box::pin(async move { self.0.run(env, path).await })
@@ -38,7 +40,7 @@ pub struct CommandList<E> {
 }
 
 impl<E> CommandList<E> {
-    pub async fn run_in(&self, env: &E, path: &Path) -> Result<(), GeenieError> {
+    pub async fn run_in(&self, env: &mut Spurgt<E>, path: &Path) -> Result<(), GeenieError> {
         for cmd in &self.cmds {
             cmd.run(env, path).await?;
         }
@@ -74,6 +76,7 @@ impl<E, C> Item<E, C> for CommandList<E> {
     fn process<'a>(
         self,
         ctx: crate::Context<'a, E, C>,
+        _env: &'a mut Spurgt<E>,
     ) -> impl Future<Output = Result<(), GeenieError>> + 'a {
         async move {
             for cmd in self {
@@ -94,6 +97,7 @@ where
     fn process<'a>(
         self,
         mut ctx: crate::Context<'a, E, C>,
+        _env: &'a mut Spurgt<E>,
     ) -> impl Future<Output = Result<(), GeenieError>> + 'a {
         async move {
             ctx.command(self.0);
