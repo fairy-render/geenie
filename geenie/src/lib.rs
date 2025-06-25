@@ -2,14 +2,11 @@ mod command;
 mod context;
 mod error;
 mod file;
-// mod func;
 mod geenie;
 mod item;
 #[cfg(feature = "process")]
 mod process;
 mod result;
-
-// mod machine;
 
 pub mod questions {
     pub use spurgt::{
